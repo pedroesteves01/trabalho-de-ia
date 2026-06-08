@@ -153,53 +153,7 @@ Os gráficos gerados encontram-se na pasta `results/graphs/`:
 
 ---
 
-## 8. Análise Crítica
-
-### 8.1 O agente online tomou decisões subótimas? Por quê?
-
-**Replanning A*:** Tomou decisões ligeiramente subótimas (razão 1.06). Isso ocorre porque, com mapa parcialmente conhecido, o agente pode iniciar um caminho que depois se revela bloqueado, forçando um desvio. O custo extra de 2 movimentos (35 vs 33) representa apenas um pequeno "pedágio" pela falta de informação completa.
-
-**Online DFS:** Tomou decisões fortemente subótimas (razão 9.0). O DFS não possui heurística de direção — ele explora sistematicamente todo o labirinto antes de eventualmente encontrar o objetivo. Isso resulta em exploração desnecessária de caminhos sem saída.
-
-### 8.2 Quais informações faltavam ao agente?
-
-- A disposição completa de paredes no labirinto
-- Atalhos e caminhos alternativos
-- Becos sem saída (que o agente só descobre ao entrar neles)
-- A topologia global do labirinto
-
-### 8.3 O mapa interno convergiu para o mapa real?
-
-**Replanning A*:** O mapa interno convergiu parcialmente — apenas as regiões ao longo do caminho percorrido foram reveladas (110 de ~425 células livres com raio 1). O agente não precisa conhecer o mapa inteiro para encontrar o objetivo.
-
-**Online DFS:** O mapa interno convergiu quase completamente (386 células reveladas), pois o DFS explora exaustivamente antes de encontrar o objetivo.
-
-### 8.4 O agente revisitou muitas células?
-
-**Replanning A*:** Praticamente não revisitou (apenas 1 célula revisitada). A heurística A* direciona eficientemente o agente.
-
-**Online DFS:** Revisitou 116 células. O backtracking inerente ao DFS causa muitas revisitas ao percorrer caminhos de volta.
-
-### 8.5 Como melhorar a exploração?
-
-- **Aumentar o raio de percepção** (reduz replanejamentos de 14 para 7 no A*)
-- **Usar D* Lite** para replanning incremental (evita recalcular A* do zero)
-- **Memorizar becos sem saída** para evitar reentrada
-- **Exploração dirigida** priorizando fronteiras com informação desconhecida
-
-### 8.6 O que diferencia busca online de busca clássica?
-
-| Aspecto | Busca Clássica | Busca Online |
-|---------|---------------|--------------|
-| Conhecimento | Mapa completo | Mapa parcial |
-| Planejamento | Uma vez, antes de agir | Contínuo, a cada passo |
-| Garantia de otimalidade | Sim (A*) | Não |
-| Custo computacional | Baixo (1 execução) | Alto (múltiplos replanejamentos) |
-| Adequação | Ambientes estáticos conhecidos | Ambientes desconhecidos/dinâmicos |
-
----
-
-## 9. Limitações
+## 8. Limitações
 
 1. **Heurística otimista no A* parcial:** Tratar células desconhecidas como livres pode levar a caminhos que se revelam bloqueados.
 2. **Custo computacional:** Replanejamento frequente com A* pode ser custoso em labirintos muito grandes.
@@ -208,39 +162,7 @@ Os gráficos gerados encontram-se na pasta `results/graphs/`:
 
 ---
 
-## 10. Uso de IA
-
-Este trabalho utilizou o **GitHub Copilot (Claude)** como ferramenta de apoio ao desenvolvimento. Abaixo detalhamos como a IA foi empregada em cada etapa:
-
-### Ferramentas Utilizadas
-- **GitHub Copilot (Claude Opus 4)** — assistente de programação integrado ao VS Code
-
-### Dúvidas e Conceitos Esclarecidos com IA
-- Como implementar o ciclo **perceber → atualizar → planejar → agir** da busca online, separando corretamente o mapa real (simulador) do mapa interno (agente)
-- Diferença entre **heurística otimista e pessimista** no tratamento de células desconhecidas no A* parcial — optamos pela otimista (tratar `?` como livre) após entender que a pessimista impediria o planejamento
-- Funcionamento do **raio de percepção** usando distância de Manhattan (formato losango) e como ele afeta o número de replanejamentos
-
-
-### Geração de Código com Apoio de IA
-- **Visualização com Pygame** (`visualization.py`): a estrutura da interface colorida, o sistema de controles interativos (SPACE, setas, HOME/END), a renderização do mapa com névoa de guerra e a legenda lateral foram gerados com apoio do Claude
-- **Gráficos com Matplotlib** (`graphs.py`): os 7 gráficos de desempenho (razão online/offline, movimentos, células reveladas vs revisitadas, replanejamentos, tempo, comparação geral, progressão de descoberta) foram gerados com apoio do Claude
-- **Módulo de métricas** (`metrics.py`): a estrutura de coleta de métricas e exportação para CSV
-
-### Revisão de Código e Explicação de Erros
-- O Claude foi utilizado para **revisão de código**, identificando um `IndexError` na função `_perceive()` causado por linhas do labirinto com comprimentos diferentes — corrigido com padding e verificação de bounds
-- **Explicação de erros**: o Claude auxiliou na compreensão de erros de runtime e na depuração de problemas de integração entre os módulos
-
-### Sugestões Rejeitadas
-- Nenhuma sugestão principal foi rejeitada neste módulo
-
-### Validação
-- Todos os algoritmos foram testados no labirinto com resultados verificados manualmente
-- Os resultados experimentais foram comparados entre raios de percepção para confirmar consistência
-- A razão online/offline do Replanning A* (1.06) foi verificada contra o caminho ótimo offline (custo 33 vs custo online 35)
-
----
-
-## 11. Conclusão
+## 9. Conclusão
 
 A implementação demonstrou que:
 

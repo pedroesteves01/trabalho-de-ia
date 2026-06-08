@@ -1,7 +1,7 @@
 raio_percepcao,algoritmo,sucesso,movimentos_totais,custo_real,celulas_reveladas,celulas_revisitadas,replanejamentos,tempo_execucao,razao_online_offline,custo_otimo_offline
-1,replanning_astar,True,35,35,110,1,14,0.003999,1.0606,33
-1,online_dfs,True,297,297,386,116,297,0.003001,9.0000,33
-2,replanning_astar,True,35,35,150,1,8,0.002000,1.0606,33
-2,online_dfs,True,297,297,410,116,297,0.004000,9.0000,33
-3,replanning_astar,True,35,35,188,1,7,0.002002,1.0606,33
-3,online_dfs,True,297,297,423,116,297,0.006054,9.0000,33
+1,replanning_astar,True,35,35,110,1,14,0.000000,1.0606,33
+1,online_dfs,True,297,297,386,116,297,0.000000,9.0000,33
+2,replanning_astar,True,35,35,150,1,8,0.000000,1.0606,33
+2,online_dfs,True,297,297,410,116,297,0.000000,9.0000,33
+3,replanning_astar,True,35,35,188,1,7,0.014565,1.0606,33
+3,online_dfs,True,297,297,423,116,297,0.001347,9.0000,33

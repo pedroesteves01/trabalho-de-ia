@@ -8,12 +8,7 @@ def manhattan_distance(pos, goal):
 
 
 def astar_offline(maze, start, goal):
-    """
-    A* completo no mapa real (offline).
-    Baseado na implementação de busca por prioridade do colega,
-    adaptada para a interface deste projeto.
-    Retorna: (caminho, nós_expandidos, custo)
-    """
+
     contador = itertools.count()
     fronteira = []
     g_inicio = 0.0

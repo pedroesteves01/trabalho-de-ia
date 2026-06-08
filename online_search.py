@@ -1,15 +1,8 @@
-"""
-Algoritmos de busca online no labirinto desconhecido.
-Implementa:
-  - Opção A: Replanning com A*
-  - Opção B: Online DFS
-"""
 from maze import AgentMap
 from classical_search import astar_on_partial_map
 
 
 class OnlineSearchMetrics:
-    """Coleta métricas da busca online."""
 
     def __init__(self):
         self.success = False
@@ -20,11 +13,10 @@ class OnlineSearchMetrics:
         self.replannings = 0
         self.path_taken = []
         self.visited_count = {}
-        self.map_states = []  # snapshots do mapa para visualização
+        self.map_states = [] 
 
 
 class OnlineAgent:
-    """Agente de busca online base."""
 
     def __init__(self, real_maze, perception_radius=1):
         self.real_maze = real_maze
@@ -36,11 +28,9 @@ class OnlineAgent:
         self.metrics = OnlineSearchMetrics()
         self.metrics.path_taken.append(self.start)
         self.metrics.visited_count[self.start] = 1
-        # Percepção inicial
         self._perceive()
 
     def _perceive(self):
-        """O agente percebe células na vizinhança (raio r)."""
         r, c = self.current_pos
         for dr in range(-self.perception_radius, self.perception_radius + 1):
             for dc in range(-self.perception_radius, self.perception_radius + 1):
@@ -57,24 +47,20 @@ class OnlineAgent:
                             self.agent_map.update((nr, nc), AgentMap.WALL)
 
     def _move_to(self, next_pos):
-        """Move o agente para a próxima posição."""
         self.current_pos = next_pos
         self.metrics.total_movements += 1
         self.metrics.real_cost += 1
         self.metrics.path_taken.append(next_pos)
 
-        # Contabilizar revisitas
         if next_pos in self.metrics.visited_count:
             self.metrics.visited_count[next_pos] += 1
             self.metrics.cells_revisited += 1
         else:
             self.metrics.visited_count[next_pos] = 1
 
-        # Percepção após mover
         self._perceive()
 
     def _save_state(self):
-        """Salva snapshot do mapa interno para visualização."""
         state = {
             'agent_pos': self.current_pos,
             'map': [row[:] for row in self.agent_map.grid],
@@ -84,13 +70,8 @@ class OnlineAgent:
 
 
 class ReplanningAStarAgent(OnlineAgent):
-    """
-    Opção A: Replanning com A*.
-    A cada passo, executa A* no mapa parcial e segue o próximo passo.
-    """
 
     def solve(self):
-        """Executa a busca online com replanning."""
         self._save_state()
         max_steps = self.real_maze.rows * self.real_maze.cols * 4  # limite de segurança
 
@@ -109,11 +90,9 @@ class ReplanningAStarAgent(OnlineAgent):
             if len(path) < 2:
                 break
 
-            # Tenta seguir o caminho planejado
             for i in range(1, len(path)):
                 next_pos = path[i]
 
-                # Verifica se o próximo passo é realmente livre no mapa real
                 if self.real_maze.is_free(next_pos):
                     self._move_to(next_pos)
                     self._save_state()
@@ -122,10 +101,10 @@ class ReplanningAStarAgent(OnlineAgent):
                         self.metrics.success = True
                         return self.metrics
                 else:
-                    # Descobriu parede — atualiza mapa e replaneja
+                    # Descobriu parede — atualiza mapa e replaneja rota
                     self.agent_map.update(next_pos, AgentMap.WALL)
                     self.metrics.cells_revealed += 1
-                    break  # Sai do loop para replanejar
+                    break 
 
         if self.current_pos == self.goal:
             self.metrics.success = True
@@ -136,19 +115,12 @@ class ReplanningAStarAgent(OnlineAgent):
 
 
 class OnlineDFSAgent(OnlineAgent):
-    """
-    Opção B: Online DFS.
-    Explora sistematicamente mantendo estados visitados e caminho de retorno.
-    """
 
     def solve(self):
-        """Executa a busca online com DFS."""
         self._save_state()
         visited = {self.current_pos}
         stack = [self.current_pos]
-        # Ações não testadas por estado
         untried = {}
-        # Mapeamento de retorno
         unbacktracked = {}
 
         max_steps = self.real_maze.rows * self.real_maze.cols * 4
@@ -157,7 +129,6 @@ class OnlineDFSAgent(OnlineAgent):
             if self.current_pos == self.goal:
                 break
 
-            # Inicializa ações não testadas para o estado atual
             if self.current_pos not in untried:
                 neighbors = []
                 r, c = self.current_pos
@@ -168,12 +139,10 @@ class OnlineDFSAgent(OnlineAgent):
                 untried[self.current_pos] = [n for n in neighbors if n not in visited]
 
             if untried[self.current_pos]:
-                # Há vizinhos não visitados — avança
                 next_pos = untried[self.current_pos].pop(0)
                 visited.add(next_pos)
                 stack.append(next_pos)
 
-                # Registra caminho de retorno
                 if next_pos not in unbacktracked:
                     unbacktracked[next_pos] = []
                 unbacktracked[next_pos].append(self.current_pos)
@@ -183,7 +152,6 @@ class OnlineDFSAgent(OnlineAgent):
                 self.metrics.replannings += 1
 
             elif self.current_pos in unbacktracked and unbacktracked[self.current_pos]:
-                # Backtrack — volta pelo caminho
                 next_pos = unbacktracked[self.current_pos].pop()
                 if stack:
                     stack.pop()
@@ -191,7 +159,6 @@ class OnlineDFSAgent(OnlineAgent):
                 self._save_state()
                 self.metrics.replannings += 1
             else:
-                # Sem saída — falha
                 break
 
         if self.current_pos == self.goal:
