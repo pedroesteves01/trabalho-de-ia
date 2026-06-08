@@ -1,4 +1,6 @@
 import inspect
+import csv
+import os
 from pathlib import Path
 from typing import List, Tuple, Dict, Set
 import matplotlib.pyplot as plt
@@ -69,6 +71,48 @@ def ler_labirinto(caminho_arquivo: str) -> List[List[str]]:
     return [list(linha) for linha in linhas]
 
 
+def exportar_para_csv(resultado, valor_j, nome_arquivo_csv="tabela_resultados.csv"):
+
+    if resultado.sucesso:
+        custo_caminho = len(resultado.acoes)
+        passos = len(resultado.caminho)
+        status = "Sim"
+    else:
+        custo_caminho = 0
+        passos = 0
+        status = "Não"
+
+    arquivo_existe = os.path.isfile(nome_arquivo_csv)
+
+    with open(nome_arquivo_csv, mode='a', newline='', encoding='utf-8') as arquivo:
+        writer = csv.writer(arquivo, delimiter=';') 
+
+        if not arquivo_existe:
+            writer.writerow([
+                'Algoritmo', 
+                'Sucesso', 
+                'Custo g(n)', 
+                'Passos', 
+                'Expandidos', 
+                'Pico Fronteira', 
+                'Tempo (s)', 
+                'Utilidade (J)'
+            ])
+
+        writer.writerow([
+            resultado.algoritmo,
+            status,
+            f"{custo_caminho:.1f}",
+            passos,
+            resultado.nos_expandidos,
+            resultado.max_fronteira,
+            f"{resultado.tempo_execucao:.6f}",
+            f"{valor_j:.2f}"
+        ])
+        
+    print(f"[CSV] Resultados salvos em '{nome_arquivo_csv}'!")
+
+
 # =============================================================================
 # FUNÇÕES DE VISUALIZAÇÃO GRÁFICA (MATPLOTLIB)
 # =============================================================================
@@ -112,7 +156,7 @@ def exibir_mapa_original_matplotlib(grid: List[List[str]], nome_arquivo: str):
     plt.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1, 1))
     plt.tight_layout()
     
-    print("\n[Matplotlib] Exibindo janela com o mapa original. Feche a janela para continuar...")
+    print("\n[Matplotlib] Exibindo mapa original. Feche a janela para continuar...")
     plt.show()
 
 
@@ -157,13 +201,13 @@ def exibir_resultado_matplotlib(problema: LabirintoProblema, resultado, nome_alg
     nome_arquivo = f"resultado_{nome_limpo}.png"
     plt.savefig(nome_arquivo, dpi=300)
     
-    print(f"\n[Matplotlib] Exibindo janela com a rota. Imagem '{nome_arquivo}' salva em disco!")
+    print(f"[Matplotlib] Imagem '{nome_arquivo}' salva! Feche a janela para continuar...")
     plt.show()
 
 
 def exibir_grafico_desempenho_individual(resultado, valor_j):
     if not resultado.sucesso:
-        print("\n[Matplotlib] O algoritmo não encontrou o caminho, gráfico de desempenho ignorado.")
+        print("[Matplotlib] Busca falhou, gráfico de desempenho ignorado.")
         return
 
     plt.rcParams['figure.facecolor'] = '#F4F6F7'
@@ -214,7 +258,7 @@ def exibir_grafico_desempenho_individual(resultado, valor_j):
     nome_arquivo = f"grafico_metricas_{nome_limpo}.png"
     plt.savefig(nome_arquivo, dpi=300, bbox_inches='tight')
     
-    print(f"[Matplotlib] Gráfico de métricas OTIMIZADO exportado: '{nome_arquivo}'")
+    print(f"[Matplotlib] Gráfico de métricas '{nome_arquivo}' salvo! Feche a janela...")
     plt.show()
 
 
@@ -237,14 +281,63 @@ def escolher_funcao(funcoes):
         raise RuntimeError("Nenhuma função pública de busca encontrada em buscaClassica.py")
 
     print("\nFunções disponíveis em buscaClassica.py:")
+    print("0. Executar TODOS os algoritmos (em lote)")
     for i, nome in enumerate(nomes, start=1):
         print(f"{i}. {nome}")
 
     while True:
-        escolha = input("Escolha o número da função de busca que deseja usar: ").strip()
+        escolha = input("Escolha o número da opção desejada: ").strip()
+        if escolha == '0':
+            return None, "TODOS"
         if escolha.isdigit() and 1 <= int(escolha) <= len(nomes):
             return funcoes[nomes[int(escolha) - 1]], nomes[int(escolha) - 1]
         print("Opção inválida. Tente novamente.")
+
+
+def executar_e_registrar(funcao_escolhida, nome_funcao, problema):
+    """Executa o algoritmo, exibe os prints, salva no CSV e plota os gráficos."""
+    print(f"\n[{nome_funcao}] Executando busca...")
+    try:
+        resultado = funcao_escolhida(problema)
+        
+        if resultado.sucesso:
+            custo_caminho = len(resultado.acoes)
+            passos = len(resultado.caminho)
+            nos_expandidos = resultado.nos_expandidos
+            valor_j = -((0.15 * custo_caminho) + (0.15 * nos_expandidos))
+            j_print = f"{valor_j:.2f}"
+            status = "Sim"
+        else:
+            custo_caminho = 0
+            passos = 0
+            nos_expandidos = resultado.nos_expandidos
+            valor_j = -1000.0
+            j_print = "-inf"
+            status = "Não"
+
+        print("\n" + "="*88)
+        print(f" RESULTADO DA BUSCA: {resultado.algoritmo} ".center(88, "="))
+        print("="*88)
+        
+        cabecalho = f"{'Algoritmo':<12} | {'Sucesso':<7} | {'Custo':<7} | {'Passos':<7} | {'Expandidos':<10} | {'Tempo (s)':<10} | {'Fronteira':<9}"
+        linha = f"{resultado.algoritmo:<12} | {status:<7} | {custo_caminho:<7.1f} | {passos:<7} | {nos_expandidos:<10} | {resultado.tempo_execucao:<10.6f} | {resultado.max_fronteira:<9}"
+        
+        print(cabecalho)
+        print("-" * 88)
+        print(linha)
+        print("="*88)
+        print(f"Performance (Utilidade J): {j_print}")
+        print("="*88)
+        
+        exportar_para_csv(resultado, valor_j)
+        
+        exibir_resultado_matplotlib(problema, resultado, resultado.algoritmo)
+        
+        if resultado.sucesso:
+            exibir_grafico_desempenho_individual(resultado, valor_j)
+            
+    except Exception as e:
+        print(f"Ocorreu um erro ao executar a função '{nome_funcao}': {e}")
 
 
 def main():
@@ -268,49 +361,15 @@ def main():
         print(e)
         return
 
-    print(f"\nFunção selecionada: {nome_funcao}")
-    print("Executando busca...")
-
-    try:
-        resultado = funcao_escolhida(problema)
-        
-        if resultado.sucesso:
-            custo_caminho = len(resultado.acoes)
-            passos = len(resultado.caminho)
-            nos_expandidos = resultado.nos_expandidos
-            
-            valor_j = -((0.15 * custo_caminho) + (0.15 * nos_expandidos))
-            j_print = f"{valor_j:.2f}"
-            status = "Sim"
-        else:
-            custo_caminho = 0
-            passos = 0
-            nos_expandidos = resultado.nos_expandidos
-            valor_j = -1000.0
-            j_print = "-inf"
-            status = "Não"
-
-        print("\n" + "="*88)
-        print(" TABELA DE RESULTADOS DA BUSCA".center(88))
-        print("="*88)
-        
-        cabecalho = f"{'Algoritmo':<12} | {'Sucesso':<7} | {'Custo':<7} | {'Passos':<7} | {'Expandidos':<10} | {'Tempo (s)':<10} | {'Fronteira':<9}"
-        linha = f"{resultado.algoritmo:<12} | {status:<7} | {custo_caminho:<7.1f} | {passos:<7} | {nos_expandidos:<10} | {resultado.tempo_execucao:<10.6f} | {resultado.max_fronteira:<9}"
-        
-        print(cabecalho)
-        print("-" * 88)
-        print(linha)
-        print("="*88)
-        print(f"Performance (Utilidade J): {j_print}")
-        print("="*88)
-        
-        exibir_resultado_matplotlib(problema, resultado, resultado.algoritmo)
-        
-        if resultado.sucesso:
-            exibir_grafico_desempenho_individual(resultado, valor_j)
-        
-    except Exception as e:
-        print(f"Ocorreu um erro ao executar a função '{nome_funcao}': {e}")
+    if nome_funcao == "TODOS":
+        print("\n" + "#"*50)
+        print(" INICIANDO EXECUÇÃO EM LOTE ".center(50, "#"))
+        print("#"*50)
+        for nome, func in funcoes.items():
+            executar_e_registrar(func, nome, problema)
+        print("\n[+] Lote concluído! Todos os dados foram adicionados ao arquivo CSV.")
+    else:
+        executar_e_registrar(funcao_escolhida, nome_funcao, problema)
 
 
 if __name__ == "__main__":
