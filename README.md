@@ -11,7 +11,7 @@ pip install matplotlib pygame numpy
 
 ---
 
-## 1. Busca Clássica (Parte II — Semana 1)
+## 1. Busca Clássica
 
 Implementação de 5 algoritmos de busca clássica com mapa completo: **BFS, DFS, UCS, Busca Gulosa e A***.
 
@@ -33,7 +33,7 @@ O programa solicita o caminho do arquivo do labirinto e o algoritmo a executar. 
 
 ---
 
-## 2. Busca Local (Parte III — Semana 2)
+## 2. Busca Local
 
 Otimização de rotas com **Hill Climbing** e **Simulated Annealing** para visitar pontos de coleta (C1, C2, C3) no menor percurso possível.
 
@@ -55,7 +55,7 @@ Executa automaticamente 30 rodadas de cada algoritmo, exibe métricas no termina
 
 ---
 
-## 3. Busca Online (Parte IV — Semana 3)
+## 3. Busca Online
 
 Agente que navega em labirinto **desconhecido**, construindo mapa interno progressivamente. Implementa **Replanning A*** e **Online DFS**.
 
