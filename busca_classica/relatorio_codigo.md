@@ -91,9 +91,6 @@ Cada algoritmo chama `busca_prioridade` com uma lambda diferente:
 | UCS | `lambda no: no.g` |
 | Gulosa | `lambda no: self.h(no.estado)` |
 | A* | `lambda no: no.g + 1.0 * self.h(no.estado)` |
-
-**Nota:** As funções usam `busca_prioridade(self, ...)` em vez de `self.busca_prioridade(...)` porque são funções de módulo, não métodos da classe. O `self` é passado explicitamente como primeiro argumento referenciando a instância de `LabirintoProblema`.
-
 ---
 
 ## 2. `main.py` — Classe Principal e Visualização
