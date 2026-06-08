@@ -4,7 +4,9 @@ import heapq
 import time
 import matplotlib.pyplot as plt
 import numpy as np
+import csv
 
+# 1. Lê o labirinto, normaliza as linhas e resolve o problema de pontos colados em paredes
 def ler_labirinto_e_limpar(nome_arquivo):
     labirinto = []
     with open(nome_arquivo, 'r') as arquivo:
@@ -19,6 +21,7 @@ def ler_labirinto_e_limpar(nome_arquivo):
             falta = largura_maxima - len(labirinto[i])
             labirinto[i].extend(['#'] * falta)
             
+    # Encontra Dinamicamente os Checkpoints C1, C2, ..., Ck
     checkpoints_brutos = {}
     for i in range(len(labirinto)):
         for j in range(len(labirinto[i]) - 1):
@@ -26,10 +29,12 @@ def ler_labirinto_e_limpar(nome_arquivo):
                 nome_cp = 'C' + labirinto[i][j+1]
                 checkpoints_brutos[nome_cp] = (i, j)
                 
+    # Transforma os caracteres de texto originais em caminhos livres (' ')
     for nome_cp, (i, j) in checkpoints_brutos.items():
         labirinto[i][j] = ' '
         labirinto[i][j+1] = ' '
 
+    # Encontra as posições de A e B e limpa-as
     def encontrar_posicao_caractere(mapa, simbolo):
         for r, linha in enumerate(mapa):
             for c, v in enumerate(linha):
@@ -64,8 +69,10 @@ def ler_labirinto_e_limpar(nome_arquivo):
         
     return labirinto, checkpoints_limpos, inicio_ajustado, objetivo_ajustado, checkpoints_brutos, inicio_raw, objetivo_raw
 
+# Carrega o mapa com tratamento de segurança de colisão
 lab, checkpoints_dict, inicio, objetivo, pos_originais_cps, inicio_orig, obj_orig = ler_labirinto_e_limpar('./lab2.txt')
 
+# Dicionário de posições reais para renderizar os marcadores no gráfico
 posicoes_originais = {'A': inicio_orig, 'B': obj_orig}
 for k, v in pos_originais_cps.items():
     posicoes_originais[k] = v
@@ -75,6 +82,7 @@ alvos = list(checkpoints_dict.values())
 if not alvos or inicio is None or objetivo is None:
     raise ValueError("Erro Crítico: Elementos fundamentais (A, B ou C's) não foram identificados. Cheque o arquivo lab2.txt.")
 
+# 2. UCS para encontrar o menor caminho real (lista de coordenadas) entre dois pontos
 def ucs_caminho_exato(labirinto, inicio_ponto, fim_ponto):
     fila = [(0, inicio_ponto, [inicio_ponto])]
     visitados = set()
@@ -96,6 +104,7 @@ def ucs_caminho_exato(labirinto, inicio_ponto, fim_ponto):
                     
     return float('inf'), []
 
+# 3. Pré-computação das rotas entre todos os pontos importantes usando UCS
 pontos_importantes = [inicio] + alvos + [objetivo]
 dados_rotas = {}
 
@@ -106,6 +115,7 @@ for i, p1 in enumerate(pontos_importantes):
             dados_rotas[(p1, p2)] = (d, cam)
             dados_rotas[(p2, p1)] = (d, cam[::-1])
 
+# 4. FUNÇÃO DE CUSTO OBRIGATÓRIA: A -> C_pi(1) -> C_pi(2) -> C_pi(3) -> B
 def funcao_custo(ordem, pre_dados):
     custo = pre_dados[(inicio, ordem[0])][0]
     for i in range(len(ordem) - 1):
@@ -113,6 +123,7 @@ def funcao_custo(ordem, pre_dados):
     custo += pre_dados[(ordem[-1], objetivo)][0]
     return custo
 
+# 5. Vizinhança
 def gerar_vizinho(ordem_atual):
     vizinho = ordem_atual[:]
     if len(ordem_atual) < 2:
@@ -120,13 +131,13 @@ def gerar_vizinho(ordem_atual):
     i, j = random.sample(range(len(ordem_atual)), 2)
     if i > j:
         i, j = j, i
-    if random.random() < 0.5:
-        vizinho[i], vizinho[j] = vizinho[j], vizinho[i]
-    else:
-        vizinho[i:j+1] = reversed(vizinho[i:j+1])
+        
+    # Mantém APENAS a inversão do trecho
+    vizinho[i:j+1] = reversed(vizinho[i:j+1])
     return vizinho
 
-def hill_climbing(pre_dados, alvos):
+# Adicione 'max_iteracoes=225' como parâmetro
+def hill_climbing(pre_dados, alvos, max_iteracoes=225):
     ordem_atual = list(alvos)
     random.shuffle(ordem_atual)
     custo_atual = funcao_custo(ordem_atual, pre_dados)
@@ -134,7 +145,8 @@ def hill_climbing(pre_dados, alvos):
     historico_convergencia = []
     iteracoes = 0
     
-    for _ in range(1000):
+    # Substitua o número fixo pela variável
+    for _ in range(max_iteracoes):
         iteracoes += 1
         vizinho = gerar_vizinho(ordem_atual)
         custo_vizinho = funcao_custo(vizinho, pre_dados)
@@ -220,7 +232,7 @@ def calcular_e_exibir_metricas(custos, tempos, iters, nome):
     print(f"• Melhor custo encontrado: {melhor} passos")
     print(f"• Pior custo encontrado: {pior} passos")
     print(f"• Custo médio ({NUM_EXECUCOES} execuções): {medio_custo:.2f} passos")
-    print(f"• Tempo médio de execução: {medio_tempo:.4f} segundos")
+    print(f"• Tempo médio de execução: {medio_tempo:.6f} segundos")
     print(f"• Número médio de iterações: {medio_iters:.1f}")
     print(f"• Taxa de sucesso (atingir melhor custo {custo_otimo_global}): {taxa_sucesso:.2f}%")
 
@@ -263,7 +275,7 @@ def plotar_solucao_passo_a_passo(labirinto, ordem_solucao, dados_rotas, titulo, 
     plt.imshow(matriz_lab, cmap='binary', origin='upper')
     
     nome_checkpoints = {v: k for k, v in checkpoints_dict.items()}
-    cores_segmentos = ['#FF5733', '#33FF57', '#3357FF', '#900C3F'] 
+    cores_segmentos = ['#FF5733', '#33FF57', '#3357FF', '#900C3F', "#7E0C90"] 
     
     cadeia_pontos = [inicio] + ordem_solucao + [objetivo]
     nomes_cadeia = ['A'] + [nome_checkpoints[p] for p in ordem_solucao] + ['B']
@@ -294,5 +306,78 @@ def plotar_solucao_passo_a_passo(labirinto, ordem_solucao, dados_rotas, titulo, 
     plt.axis('on')
     plt.show()
 
+# Abre sequencialmente os mapas
 plotar_solucao_passo_a_passo(lab, hc_melhor_ordem, dados_rotas, "Caminho Sequencial - Hill Climbing", min(hc_custos))
 plotar_solucao_passo_a_passo(lab, sa_melhor_ordem, dados_rotas, "Caminho Sequencial - Simulated Annealing", min(sa_custos))
+
+# Função auxiliar para mapear o caminho completo e extrair as métricas de células
+def calcular_metricas_caminho(ordem, dados_rotas, inicio, objetivo):
+    caminho_total = []
+    atual = inicio
+    
+    for prox in ordem:
+        # Pega as coordenadas do trecho, removendo a última para não duplicar a interseção
+        caminho_total.extend(dados_rotas[(atual, prox)][1][:-1]) 
+        atual = prox
+        
+    # Adiciona o trecho final até o objetivo
+    caminho_total.extend(dados_rotas[(atual, objetivo)][1])
+    
+    # Células reveladas (únicas) = transformamos a lista num 'set' (conjunto) que remove duplicatas
+    celulas_unicas = len(set(caminho_total))
+    
+    # Células revisitadas = total de passos reais dados menos as células únicas
+    celulas_revisitadas = len(caminho_total) - celulas_unicas
+    
+    return celulas_unicas, celulas_revisitadas
+
+# Calculando as métricas para as melhores rotas encontradas por cada algoritmo
+hc_reveladas, hc_revisitadas = calcular_metricas_caminho(hc_melhor_ordem, dados_rotas, inicio, objetivo)
+sa_reveladas, sa_revisitadas = calcular_metricas_caminho(sa_melhor_ordem, dados_rotas, inicio, objetivo)
+
+linhas_csv = []
+
+# Resultados do Hill Climbing
+linhas_csv.append({
+    'raio_percepcao': 0, # Algoritmo Offline (não tem raio de visão)
+    'algoritmo': 'hill_climbing',
+    'sucesso': hc_min <= custo_otimo_global,
+    'movimentos_totais': hc_min,
+    'custo_real': hc_min,
+    'celulas_reveladas': hc_reveladas,
+    'celulas_revisitadas': hc_revisitadas,
+    'replanejamentos': 0, # Algoritmo Offline não recalcula rota no meio do caminho
+    'tempo_execucao': np.mean(hc_tempos),
+    'razao_online_offline': 1.0, # Como ele já atua de forma offline, a razão é 1
+    'custo_otimo_offline': custo_otimo_global
+})
+
+# Resultados do Simulated Annealing
+linhas_csv.append({
+    'raio_percepcao': 0,
+    'algoritmo': 'simulated_annealing',
+    'sucesso': sa_min <= custo_otimo_global,
+    'movimentos_totais': sa_min,
+    'custo_real': sa_min,
+    'celulas_reveladas': sa_reveladas,
+    'celulas_revisitadas': sa_revisitadas,
+    'replanejamentos': 0,
+    'tempo_execucao': np.mean(sa_tempos),
+    'razao_online_offline': 1.0,
+    'custo_otimo_offline': custo_otimo_global
+})
+
+nome_arquivo = 'resultados_algoritmos.csv'
+cabecalho = [
+    'raio_percepcao', 'algoritmo', 'sucesso', 'movimentos_totais', 'custo_real',
+    'celulas_reveladas', 'celulas_revisitadas', 'replanejamentos', 
+    'tempo_execucao', 'razao_online_offline', 'custo_otimo_offline'
+]
+
+# Escrevendo o arquivo .csv
+with open(nome_arquivo, mode='w', newline='', encoding='utf-8') as arquivo_csv:
+    writer = csv.DictWriter(arquivo_csv, fieldnames=cabecalho)
+    writer.writeheader()
+    writer.writerows(linhas_csv)
+
+print(f"\nArquivo '{nome_arquivo}' gerado com sucesso com métricas geométricas reais!")
